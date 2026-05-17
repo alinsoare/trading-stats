@@ -1,0 +1,71 @@
+Metadata-Version: 2.4
+Name: trading-stats
+Version: 0.1.0
+Summary: Multi-account MT5 deal export scanner and Streamlit dashboard (Wine portable terminals)
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: polars>=0.20
+Requires-Dist: streamlit>=1.28
+Requires-Dist: plotly>=5.18
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4; extra == "dev"
+
+# Trading stats
+
+Multi-account MT5 deal CSV export + analytics. Two front-ends share the same core package:
+
+| Front-end | Location | How to run |
+|-----------|----------|------------|
+| **Streamlit** web dashboard | this folder | `streamlit run src/trading_stats/Dashboard.py` |
+| **PySide6** native desktop app | `desktop/` | `python -m trading_stats_desktop` |
+| **Ubuntu `.deb`** package | `linux/` | `linux/build_deb.sh` → `sudo dpkg -i …` |
+
+## Python environment (venv)
+
+From this directory:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+On **Configuration**, add rows and enter each folder as an **absolute path** (type or paste).
+
+Run the app (multipage: Dashboard + Configuration):
+
+```bash
+streamlit run src/trading_stats/Dashboard.py
+```
+
+Optional: editable install only (same deps as `requirements.txt`):
+
+```bash
+pip install -e ".[dev]"
+```
+
+## Desktop app (PySide6)
+
+```bash
+pip install -e .           # core (already done if you ran requirements.txt)
+pip install -e desktop/    # adds PySide6 + matplotlib
+python -m trading_stats_desktop
+```
+
+See `desktop/README.md` for the Windows `.exe` build instructions.
+
+## MQL5 export
+
+Compile `mql5/ExportTradingDeals.mq5` in MetaEditor, copy `.mq5` / `.ex5` into each terminal’s `MQL5/Scripts/`, run the script. CSV appears under `MQL5/Files/trading_stats/` (comma-separated, dot decimals, **FILE_ANSI**). The dashboard reads CSVs with a tolerant UTF-8 decoder.
+
+## Configuration page
+
+In the Streamlit sidebar, open **Configuration** to add **absolute paths** (no defaults):
+
+- the folder that contains **`deals_*.csv`** (usually `…/MQL5/Files/trading_stats`), or  
+- the **MT5 terminal / data root** if `MQL5/Files/trading_stats` exists under it.
+
+Paths are session-only; there is no automatic scan of fixed install locations.
+
+Do not commit account CSVs from Wine into git.

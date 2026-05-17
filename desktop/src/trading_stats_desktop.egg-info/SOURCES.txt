@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/trading_stats_desktop/__init__.py
+src/trading_stats_desktop/__main__.py
+src/trading_stats_desktop/kpi_card.py
+src/trading_stats_desktop/main_window.py
+src/trading_stats_desktop/settings_store.py
+src/trading_stats_desktop/table_util.py
+src/trading_stats_desktop/theme.py
+src/trading_stats_desktop.egg-info/PKG-INFO
+src/trading_stats_desktop.egg-info/SOURCES.txt
+src/trading_stats_desktop.egg-info/dependency_links.txt
+src/trading_stats_desktop.egg-info/entry_points.txt
+src/trading_stats_desktop.egg-info/requires.txt
+src/trading_stats_desktop.egg-info/top_level.txt

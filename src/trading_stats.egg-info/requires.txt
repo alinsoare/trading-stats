@@ -1,0 +1,6 @@
+polars>=0.20
+streamlit>=1.28
+plotly>=5.18
+
+[dev]
+pytest>=7.4

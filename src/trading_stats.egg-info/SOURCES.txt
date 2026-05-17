@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/trading_stats/Dashboard.py
+src/trading_stats/__init__.py
+src/trading_stats/config_state.py
+src/trading_stats/ingest.py
+src/trading_stats/kpis.py
+src/trading_stats/paths.py
+src/trading_stats.egg-info/PKG-INFO
+src/trading_stats.egg-info/SOURCES.txt
+src/trading_stats.egg-info/dependency_links.txt
+src/trading_stats.egg-info/requires.txt
+src/trading_stats.egg-info/top_level.txt
+src/trading_stats/pages/Configuration.py
+src/trading_stats/pages/__init__.py
