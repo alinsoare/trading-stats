@@ -1,0 +1,91 @@
+name: Release
+
+# Triggered by pushing a version tag, e.g.:
+#   git tag v0.2.0 && git push origin v0.2.0
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+jobs:
+  # ── Linux .deb ─────────────────────────────────────────────────────────────
+  build-deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system build tools
+        run: sudo apt-get install -y fakeroot dpkg
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build .deb
+        run: bash linux/build_deb.sh
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-package
+          path: linux/dist/*.deb
+
+  # ── Windows .exe ───────────────────────────────────────────────────────────
+  build-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash   # use Git Bash for consistent syntax across all steps
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install core library (editable)
+        run: pip install -e .
+
+      - name: Install desktop package + PyInstaller (editable)
+        run: pip install -e ".[build]"
+        working-directory: desktop
+
+      - name: Build .exe
+        run: pyinstaller --clean --noconfirm TradingStats.spec
+        working-directory: desktop
+
+      - name: Rename .exe to include version tag
+        run: mv desktop/dist/TradingStats.exe "desktop/dist/TradingStats-${{ github.ref_name }}.exe"
+
+      - name: Upload .exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: exe-package
+          path: desktop/dist/TradingStats-*.exe
+
+  # ── GitHub Release with both files ─────────────────────────────────────────
+  release:
+    needs: [build-deb, build-exe]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to create a release
+    steps:
+      - name: Download .deb
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-package
+          path: artifacts/
+
+      - name: Download .exe
+        uses: actions/download-artifact@v4
+        with:
+          name: exe-package
+          path: artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true   # auto-fills notes from commit messages
