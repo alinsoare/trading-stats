@@ -1,71 +1,76 @@
 Metadata-Version: 2.4
 Name: trading-stats
 Version: 0.1.0
-Summary: Multi-account MT5 deal export scanner and Streamlit dashboard (Wine portable terminals)
+Summary: Multi-account MT5 deal export — core data library (ingest, KPIs, paths)
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: polars>=0.20
-Requires-Dist: streamlit>=1.28
-Requires-Dist: plotly>=5.18
 Provides-Extra: dev
 Requires-Dist: pytest>=7.4; extra == "dev"
+Dynamic: license-file
 
 # Trading stats
 
-Multi-account MT5 deal CSV export + analytics. Two front-ends share the same core package:
+Multi-account MT5 deal CSV export + PySide6 desktop analytics app.
 
-| Front-end | Location | How to run |
-|-----------|----------|------------|
-| **Streamlit** web dashboard | this folder | `streamlit run src/trading_stats/Dashboard.py` |
-| **PySide6** native desktop app | `desktop/` | `python -m trading_stats_desktop` |
-| **Ubuntu `.deb`** package | `linux/` | `linux/build_deb.sh` → `sudo dpkg -i …` |
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Core library** | `src/trading_stats/` | CSV ingest, KPI calculations, path resolution |
+| **Desktop app** | `desktop/` | PySide6 native UI (filters, charts, tables) |
+| **Ubuntu `.deb`** | `linux/` | Installable package builder |
+| **MQL5 exporter** | `mql5/` | MetaEditor script that writes `deals_*.csv` |
 
-## Python environment (venv)
+---
 
-From this directory:
+## Quick start
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -U pip
-pip install -r requirements.txt
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e .                 # core library
+pip install -e desktop/          # desktop app (PySide6 + matplotlib)
+python -m trading_stats_desktop  # launch
 ```
 
-On **Configuration**, add rows and enter each folder as an **absolute path** (type or paste).
-
-Run the app (multipage: Dashboard + Configuration):
-
-```bash
-streamlit run src/trading_stats/Dashboard.py
-```
-
-Optional: editable install only (same deps as `requirements.txt`):
-
-```bash
-pip install -e ".[dev]"
-```
-
-## Desktop app (PySide6)
-
-```bash
-pip install -e .           # core (already done if you ran requirements.txt)
-pip install -e desktop/    # adds PySide6 + matplotlib
-python -m trading_stats_desktop
-```
-
-See `desktop/README.md` for the Windows `.exe` build instructions.
+---
 
 ## MQL5 export
 
-Compile `mql5/ExportTradingDeals.mq5` in MetaEditor, copy `.mq5` / `.ex5` into each terminal’s `MQL5/Scripts/`, run the script. CSV appears under `MQL5/Files/trading_stats/` (comma-separated, dot decimals, **FILE_ANSI**). The dashboard reads CSVs with a tolerant UTF-8 decoder.
+Compile `mql5/ExportTradingDeals.mq5` in MetaEditor, copy `.ex5` into each
+terminal's `MQL5/Scripts/`, run it from the MT5 Navigator.
+CSV files appear under `MQL5/Files/trading_stats/` (comma-separated, dot decimals, ANSI encoding).
 
-## Configuration page
+---
 
-In the Streamlit sidebar, open **Configuration** to add **absolute paths** (no defaults):
+## Configuration
 
-- the folder that contains **`deals_*.csv`** (usually `…/MQL5/Files/trading_stats`), or  
-- the **MT5 terminal / data root** if `MQL5/Files/trading_stats` exists under it.
+In the desktop app, add **absolute paths** to the folders containing `deals_*.csv`:
 
-Paths are session-only; there is no automatic scan of fixed install locations.
+- the folder itself (`…/MQL5/Files/trading_stats`), **or**
+- the MT5 terminal root if `MQL5/Files/trading_stats` exists under it.
 
-Do not commit account CSVs from Wine into git.
+Paths are saved automatically in `~/.config/TradingStats/` and restored on next launch.
+
+---
+
+## Ubuntu `.deb` package
+
+See `linux/README.md`. One-command build:
+
+```bash
+linux/build_deb.sh
+sudo dpkg -i linux/dist/trading-stats_0.1.0_amd64.deb
+```
+
+---
+
+## Windows
+
+```powershell
+pip install -e .
+pip install -e desktop\
+python -m trading_stats_desktop
+```
+
+For a standalone `.exe` see `desktop/README.md`.

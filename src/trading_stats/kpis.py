@@ -111,19 +111,20 @@ def summarize_groups(pos: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
     return pl.DataFrame(rows).select(group_by + _KPI_COLS).sort(group_by)
 
 
-def rollup_positions(pos: pl.DataFrame, bucket: Bucket) -> pl.DataFrame:
+def rollup_positions(pos: pl.DataFrame, bucket: Bucket, *, be_threshold: float = 0.0) -> pl.DataFrame:
     if pos.is_empty():
         return pos
     b = _bucket_expr(bucket)
+    thr = be_threshold
     return (
         pos.with_columns(b)
         .group_by(["account_label", "period"])
         .agg(
             pl.len().alias("trades"),
             pl.col("net_pnl").sum().round(2).alias("net_pnl"),
-            (pl.col("net_pnl") > 0).sum().alias("wins"),
-            (pl.col("net_pnl") < 0).sum().alias("losses"),
-            (pl.col("net_pnl") == 0).sum().alias("breakeven"),
+            (pl.col("net_pnl").round(2) > thr).sum().alias("wins"),
+            (pl.col("net_pnl").round(2) < -thr).sum().alias("losses"),
+            ((pl.col("net_pnl").round(2) >= -thr) & (pl.col("net_pnl").round(2) <= thr)).sum().alias("breakeven"),
         )
         .sort(["account_label", "period"])
     )
@@ -144,8 +145,19 @@ def _r2(v: float) -> float:
     return round(v, 2)
 
 
-def summarize_positions(pos: pl.DataFrame, *, label: str | None = None) -> dict:
-    """Aggregate KPIs for a position table (single account or all)."""
+def summarize_positions(
+    pos: pl.DataFrame,
+    *,
+    be_threshold: float = 0.0,
+    label: str | None = None,
+) -> dict:
+    """Aggregate KPIs for a position table (single account or all).
+
+    If the DataFrame contains a ``_be_thr`` column (per-row tolerance injected
+    by the caller), it is used for win/loss/breakeven classification.  Otherwise
+    ``be_threshold`` (a single scalar) is applied uniformly.  Breakeven trades
+    are excluded from both winners and losers before any further KPI maths.
+    """
     if pos.is_empty() or len(pos) == 0:
         return {
             "label": label or "—",
@@ -168,12 +180,20 @@ def summarize_positions(pos: pl.DataFrame, *, label: str | None = None) -> dict:
         }
 
     pnl = pos["net_pnl"]
-    n_win = int((pnl > 0).sum())
-    n_loss = int((pnl < 0).sum())
-    be = int((pnl == 0).sum())
 
-    wins = pos.filter(pl.col("net_pnl") > 0)
-    losses = pos.filter(pl.col("net_pnl") < 0)
+    if "_be_thr" in pos.columns:
+        win_expr  = pl.col("net_pnl").round(2) > pl.col("_be_thr")
+        loss_expr = pl.col("net_pnl").round(2) < pl.col("_be_thr") * -1
+    else:
+        win_expr  = pl.col("net_pnl").round(2) > pl.lit(be_threshold)
+        loss_expr = pl.col("net_pnl").round(2) < pl.lit(-be_threshold)
+
+    n_win  = int(pos.select(win_expr.sum()).item())
+    n_loss = int(pos.select(loss_expr.sum()).item())
+    be     = len(pos) - n_win - n_loss
+
+    wins   = pos.filter(win_expr)
+    losses = pos.filter(loss_expr)
 
     n = len(pos)
     denom = n_win + n_loss

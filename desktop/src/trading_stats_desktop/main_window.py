@@ -9,16 +9,16 @@ from typing import cast
 import polars as pl
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, QSettings, Qt
+from PySide6.QtCore import QDate, QSettings, Qt, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QComboBox,
     QDateEdit,
+    QDoubleSpinBox,
     QFileDialog,
     QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -43,8 +43,9 @@ from trading_stats.kpis import (
     summarize_groups,
     summarize_positions,
 )
+from trading_stats_desktop.collapsible_section import CollapsibleSection
 from trading_stats_desktop.kpi_card import KpiCard
-from trading_stats_desktop.settings_store import load_paths, save_paths
+from trading_stats_desktop.settings_store import load_be_thresholds, load_paths, save_be_thresholds, save_paths
 from trading_stats_desktop.table_util import fill_table_from_polars
 from trading_stats_desktop.theme import (
     ACCENT_PRIMARY,
@@ -92,6 +93,7 @@ class MainWindow(QMainWindow):
         self._settings = QSettings()
         self._deals: pl.DataFrame = pl.DataFrame()
         self._pos: pl.DataFrame = pl.DataFrame()
+        self._be_thresholds: dict[str, float] = load_be_thresholds(self._settings)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -151,67 +153,108 @@ class MainWindow(QMainWindow):
         # ── right content area ─────────────────────────────────────────────
         right = QWidget()
         rl = QVBoxLayout(right)
-        rl.setContentsMargins(12, 12, 12, 12)
-        rl.setSpacing(8)
+        rl.setContentsMargins(6, 6, 6, 6)
+        rl.setSpacing(4)
 
-        # filters row
-        filt = QGroupBox("Filters")
-        fl = QGridLayout(filt)
-        fl.setHorizontalSpacing(8)
-        fl.setVerticalSpacing(6)
-        fl.setContentsMargins(10, 14, 10, 10)
+        # vertical splitter holds 4 collapsible sections
+        self._vsplit = QSplitter(Qt.Orientation.Vertical)
+        self._vsplit.setChildrenCollapsible(False)
 
-        fl.addWidget(QLabel("Exit date from"), 0, 0)
+        # ── section 1: Filters (2-column layout) ──────────────────────────
+        filt_content = QWidget()
+        filt_h = QHBoxLayout(filt_content)
+        filt_h.setContentsMargins(8, 8, 8, 8)
+        filt_h.setSpacing(12)
+
+        # Left column — accounts list
+        acct_col = QWidget()
+        acct_vl = QVBoxLayout(acct_col)
+        acct_vl.setContentsMargins(0, 0, 0, 0)
+        acct_vl.setSpacing(4)
+        acct_vl.addWidget(QLabel("Accounts"))
+        self._list_accounts = QListWidget()
+        self._list_accounts.setMaximumHeight(100)
+        self._list_accounts.itemChanged.connect(
+            lambda *_: QTimer.singleShot(0, self._refresh_filtered)
+        )
+        self._list_accounts.currentItemChanged.connect(self._on_account_selected)
+        acct_vl.addWidget(self._list_accounts, stretch=1)
+        filt_h.addWidget(acct_col, stretch=1)
+
+        # Right column — date range, BE tolerance, rollup & export
+        ctrl_col = QWidget()
+        cl = QGridLayout(ctrl_col)
+        cl.setContentsMargins(0, 0, 0, 0)
+        cl.setHorizontalSpacing(6)
+        cl.setVerticalSpacing(6)
+
+        cl.addWidget(QLabel("From"), 0, 0)
         self._d0 = QDateEdit()
         self._d0.setCalendarPopup(True)
         self._d0.dateChanged.connect(lambda *_: self._refresh_filtered())
-        fl.addWidget(self._d0, 0, 1)
-        fl.addWidget(QLabel("to"), 0, 2)
+        cl.addWidget(self._d0, 0, 1)
+        cl.addWidget(QLabel("to"), 0, 2)
         self._d1 = QDateEdit()
         self._d1.setCalendarPopup(True)
         self._d1.dateChanged.connect(lambda *_: self._refresh_filtered())
-        fl.addWidget(self._d1, 0, 3)
+        cl.addWidget(self._d1, 0, 3)
 
-        fl.addWidget(QLabel("Accounts"), 1, 0)
-        self._list_accounts = QListWidget()
-        self._list_accounts.setMaximumHeight(100)
-        self._list_accounts.itemChanged.connect(lambda *_: self._refresh_filtered())
-        fl.addWidget(self._list_accounts, 1, 1, 1, 3)
+        cl.addWidget(QLabel("BE tolerance ±$"), 1, 0)
+        self._be_spin = QDoubleSpinBox()
+        self._be_spin.setRange(0.0, 9_999.99)
+        self._be_spin.setDecimals(2)
+        self._be_spin.setSingleStep(0.01)
+        self._be_spin.setEnabled(False)
+        self._be_spin.setToolTip(
+            "Trades within ±this amount are counted as breakeven\n"
+            "(excluded from wins and losses). Per-account setting."
+        )
+        self._be_spin.valueChanged.connect(self._on_be_spin_changed)
+        cl.addWidget(self._be_spin, 1, 1, 1, 3)
 
-        fl.addWidget(QLabel("Rollup"), 2, 0)
+        cl.addWidget(QLabel("Rollup"), 2, 0)
         self._bucket = QComboBox()
         for b in ("day", "week", "month", "year"):
             self._bucket.addItem(b)
         self._bucket.setCurrentIndex(2)
         self._bucket.currentIndexChanged.connect(lambda *_: self._refresh_filtered())
-        fl.addWidget(self._bucket, 2, 1)
+        cl.addWidget(self._bucket, 2, 1)
 
         self._btn_export = QPushButton("Export CSV…")
         self._btn_export.clicked.connect(self._on_export_csv)
-        fl.addWidget(self._btn_export, 2, 2, 1, 2)
+        cl.addWidget(self._btn_export, 2, 2, 1, 2)
 
-        rl.addWidget(filt)
+        # let the last row absorb remaining vertical space so controls stay top-aligned
+        cl.setRowStretch(3, 1)
 
-        # KPI cards row
-        kpi_box = QGroupBox("Summary")
-        kpi_row = QHBoxLayout(kpi_box)
-        kpi_row.setContentsMargins(10, 14, 10, 10)
+        filt_h.addWidget(ctrl_col, stretch=1)
+
+        self._vsplit.addWidget(CollapsibleSection("Filters", filt_content))
+
+        # ── section 2: Summary (KPI cards) ────────────────────────────────
+        kpi_content = QWidget()
+        kpi_row = QHBoxLayout(kpi_content)
+        kpi_row.setContentsMargins(8, 8, 8, 8)
         kpi_row.setSpacing(8)
         self._kpi_cards: list[KpiCard] = []
         for title in self._KPI_TITLES:
             card = KpiCard(title)
             self._kpi_cards.append(card)
             kpi_row.addWidget(card)
-        rl.addWidget(kpi_box)
+        self._vsplit.addWidget(CollapsibleSection("Summary", kpi_content))
 
-        # matplotlib equity chart
+        # ── section 3: Cumulative Net P/L chart ───────────────────────────
+        chart_content = QWidget()
+        chart_vl = QVBoxLayout(chart_content)
+        chart_vl.setContentsMargins(4, 4, 4, 4)
         self._fig = Figure(figsize=(8, 3), layout="tight")
         self._fig.patch.set_facecolor(MPL_BG)
         self._canvas = FigureCanvas(self._fig)
-        self._canvas.setMinimumHeight(180)
-        rl.addWidget(self._canvas, stretch=2)
+        self._canvas.setMinimumHeight(120)
+        chart_vl.addWidget(self._canvas)
+        self._vsplit.addWidget(CollapsibleSection("Cumulative Net P/L", chart_content))
 
-        # data tabs
+        # ── section 4: Detailed statistics (tabs) ─────────────────────────
         tabs = QTabWidget()
         self._tab_roll  = QTableWidget()
         self._tab_sym   = QTableWidget()
@@ -225,7 +268,20 @@ class MainWindow(QMainWindow):
         tabs.addTab(self._tab_sym,   "By symbol")
         tabs.addTab(self._tab_flow,  "Non-trade sample")
         tabs.addTab(self._tab_acct,  "Per-account")
-        rl.addWidget(tabs, stretch=3)
+        self._vsplit.addWidget(CollapsibleSection("Detailed Statistics", tabs))
+
+        # stretch factors: filters+summary are compact, chart+tabs expand
+        self._vsplit.setStretchFactor(0, 0)
+        self._vsplit.setStretchFactor(1, 0)
+        self._vsplit.setStretchFactor(2, 2)
+        self._vsplit.setStretchFactor(3, 3)
+
+        # restore previous splitter layout (ignore if first run)
+        vsplit_state = self._settings.value("vsplit_state")
+        if vsplit_state:
+            self._vsplit.restoreState(vsplit_state)
+
+        rl.addWidget(self._vsplit)
 
         splitter.addWidget(left)
         splitter.addWidget(right)
@@ -236,6 +292,7 @@ class MainWindow(QMainWindow):
     # ── persistence ────────────────────────────────────────────────────────
     def closeEvent(self, event: QCloseEvent) -> None:
         self._persist_paths()
+        self._settings.setValue("vsplit_state", self._vsplit.saveState())
         super().closeEvent(event)
 
     def _persist_paths(self) -> None:
@@ -326,7 +383,12 @@ class MainWindow(QMainWindow):
             it.setFlags(it.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             it.setCheckState(Qt.CheckState.Checked)
             self._list_accounts.addItem(it)
+            if acc not in self._be_thresholds:
+                self._be_thresholds[acc] = 0.0
         self._list_accounts.blockSignals(False)
+        # Auto-select first row so the BE spinbox is immediately active.
+        if self._list_accounts.count() > 0:
+            self._list_accounts.setCurrentRow(0)
 
         self._status.setText(f"Loaded {len(self._deals)} deal rows → {len(self._pos)} positions.")
         self._refresh_filtered()
@@ -353,9 +415,50 @@ class MainWindow(QMainWindow):
         if pos_f.is_empty():
             return None
         sel = self._selected_accounts()
-        if sel:
-            pos_f = pos_f.filter(pl.col("account_label").is_in(sel))
+        if not sel:
+            return None
+        pos_f = pos_f.filter(pl.col("account_label").is_in(sel))
         return pos_f if not pos_f.is_empty() else None
+
+    # ── BE tolerance ───────────────────────────────────────────────────────
+    def _annotate_be_threshold(self, pos_f: pl.DataFrame) -> pl.DataFrame:
+        """Join a ``_be_thr`` column (per-row tolerance) onto the positions frame."""
+        if not self._be_thresholds:
+            return pos_f.with_columns(pl.lit(0.0).alias("_be_thr"))
+        thr_df = pl.DataFrame(
+            {
+                "account_label": list(self._be_thresholds.keys()),
+                "_be_thr": list(self._be_thresholds.values()),
+            }
+        )
+        return pos_f.join(thr_df, on="account_label", how="left").with_columns(
+            pl.col("_be_thr").fill_null(0.0)
+        )
+
+    def _on_account_selected(
+        self,
+        current: QListWidgetItem | None,
+        _previous: QListWidgetItem | None,
+    ) -> None:
+        if current is None:
+            self._be_spin.blockSignals(True)
+            self._be_spin.setEnabled(False)
+            self._be_spin.blockSignals(False)
+            return
+        acc = current.text()
+        self._be_spin.blockSignals(True)
+        self._be_spin.setValue(self._be_thresholds.get(acc, 0.0))
+        self._be_spin.setEnabled(True)   # inside blockSignals to prevent spurious valueChanged
+        self._be_spin.blockSignals(False)
+
+    def _on_be_spin_changed(self, value: float) -> None:
+        current = self._list_accounts.currentItem()
+        if current is None:
+            return
+        acc = current.text()
+        self._be_thresholds[acc] = value
+        save_be_thresholds(self._settings, self._be_thresholds)
+        self._refresh_filtered()
 
     # ── refresh ────────────────────────────────────────────────────────────
     def _refresh_filtered(self) -> None:
@@ -366,6 +469,7 @@ class MainWindow(QMainWindow):
             self._status.setText("No positions for current filters.")
             self._clear_kpi_tables_chart()
             return
+        pos_f = self._annotate_be_threshold(pos_f)
         agg = summarize_positions(pos_f, label="filtered")
         if agg.get("trades", 0) == 0:
             self._status.setText("No trades in current filters.")
@@ -402,6 +506,9 @@ class MainWindow(QMainWindow):
         )
 
         flows = account_flows(self._deals)
+        sel = self._selected_accounts()
+        if sel and not flows.is_empty() and "account_label" in flows.columns:
+            flows = flows.filter(pl.col("account_label").is_in(sel))
         fill_table_from_polars(
             self._tab_flow,
             flows.head(200) if not flows.is_empty() else flows,

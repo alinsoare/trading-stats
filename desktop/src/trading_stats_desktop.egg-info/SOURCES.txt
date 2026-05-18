@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 src/trading_stats_desktop/__init__.py
 src/trading_stats_desktop/__main__.py
+src/trading_stats_desktop/collapsible_section.py
 src/trading_stats_desktop/kpi_card.py
 src/trading_stats_desktop/main_window.py
 src/trading_stats_desktop/settings_store.py

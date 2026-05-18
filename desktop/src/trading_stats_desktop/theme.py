@@ -207,6 +207,34 @@ QSplitter::handle:horizontal {{
     background: {BORDER_NORMAL};
     width: 1px;
 }}
+QSplitter::handle:vertical {{
+    background: {BORDER_NORMAL};
+    height: 1px;
+}}
+
+/* ── collapsible section ─────────────────────────────────────────────────── */
+QFrame#collapsibleSection {{
+    background: {BG_SURFACE};
+    border: 1px solid {BORDER_NORMAL};
+    border-radius: 6px;
+}}
+QPushButton#sectionHeader {{
+    background: {BG_SURFACE};
+    color: {TEXT_SECONDARY};
+    border: none;
+    border-bottom: 1px solid {BORDER_NORMAL};
+    border-radius: 6px 6px 0 0;
+    padding: 0 12px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}}
+QPushButton#sectionHeader:hover {{
+    background: {BG_HOVER};
+    color: {TEXT_PRIMARY};
+}}
 
 /* ── scroll bars ─────────────────────────────────────────────────────────── */
 QScrollBar:vertical {{
