@@ -19,7 +19,7 @@ Put demo videos in the Screenshots section, not in this description.
 
 --- COPY FROM HERE (HTML body) ---
 
-<p>ExportTradingDeals is a MetaTrader 5 script that exports your complete deal history to a CSV file. The file is consumed directly by the Trading Stats desktop application to produce charts and statistics about your trading performance. Trading Stats is a free, open-source application; pre-built Ubuntu and Windows packages are available on the project releases page (search: alinsoare/trading-stats on GitHub).</p>
+<p>ExportTradingDeals is a MetaTrader 5 script that exports your complete deal history to a CSV file. The file is consumed directly by the Trading Stats desktop application to produce charts and statistics about your trading performance. Trading Stats is a free, open-source application; pre-built Ubuntu / Debian and Windows packages are available on the project releases page (search: alinsoare/trading-stats on GitHub).</p>
 
 <h2>What it does</h2>
 
@@ -53,7 +53,7 @@ Put demo videos in the Screenshots section, not in this description.
 
 <p>If the trading_stats subfolder does not yet exist, the script creates it automatically. The export runs on the history loaded in the terminal; if the server has not delivered older history yet, scroll the chart back or use Tools &rarr; History Center to load more data before running the script.</p>
 
-<p>Trading Stats is a free, open-source desktop application. Pre-built Ubuntu and Windows packages are available on the releases page of the project (search: alinsoare/trading-stats on GitHub). No build step is required when using a pre-built package.</p>
+<p>Trading Stats is a free, open-source desktop application. Pre-built Ubuntu / Debian (.deb) and Windows installer packages are available on the releases page of the project (search: alinsoare/trading-stats on GitHub). No build step is required when using a pre-built package.</p>
 
 <h2>Support</h2>
 
@@ -62,4 +62,4 @@ Put demo videos in the Screenshots section, not in this description.
 
 --- END OF HTML BODY ---
 
-Character count (HTML body only): 2918
+Character count (HTML body only): 3768
