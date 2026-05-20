@@ -23,7 +23,11 @@ jobs:
           python-version: '3.13'
 
       - name: Build .deb
-        run: bash linux/build_deb.sh
+        env:
+          PKG_VERSION: ${{ github.ref_name }}   # e.g. "v0.2.0" → strip v in script
+        run: |
+          export PKG_VERSION="${PKG_VERSION#v}"
+          bash linux/build_deb.sh
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4

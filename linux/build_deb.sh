@@ -28,7 +28,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 PKG_NAME="trading-stats"
-PKG_VERSION="0.2.0"
+# Version can be supplied via PKG_VERSION env var (e.g. from CI).
+# Defaults to "0.1.0" if neither is available.
+PKG_VERSION="${PKG_VERSION:-0.1.0}"
+echo "Version: $PKG_VERSION"
 ARCH="amd64"
 DEB_FILE="${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb"
 
@@ -41,6 +44,7 @@ DIST_DIR="$SCRIPT_DIR/dist"
 
 # ── sanity checks ────────────────────────────────────────────────────────────
 command -v python3  >/dev/null || { echo "ERROR: python3 not found"; exit 1; }
+command -v git      >/dev/null || { echo "ERROR: git not found — run: sudo apt install git"; exit 1; }
 command -v dpkg-deb >/dev/null || { echo "ERROR: dpkg-deb not found — run: sudo apt install dpkg"; exit 1; }
 command -v fakeroot >/dev/null || { echo "ERROR: fakeroot not found — run: sudo apt install fakeroot"; exit 1; }
 
