@@ -46,6 +46,15 @@ Output: `desktop\dist\TradingStats-<version>-setup.exe` (~1–2 MB).
 
 Build time is fast — only two small local wheels are built (no PySide6 download at build time).
 
+To build with a specific version, set `PKG_VERSION` before running:
+
+```powershell
+$Env:PKG_VERSION = "1.0.1"
+desktop\scripts\build_installer.ps1
+```
+
+Without `PKG_VERSION` the version defaults to `0.1.0` (local dev build). On CI the workflow sets it from the git tag automatically.
+
 ### What the installer does
 
 1. Copies the two local app wheels to `%LOCALAPPDATA%\TradingStats\wheels\`

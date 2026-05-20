@@ -7,7 +7,7 @@ Third-party Python dependencies (PySide6, polars, matplotlib) are **not** embedd
 ## Build requirements (build machine)
 
 ```bash
-sudo apt install python3 python3-pip git dpkg fakeroot
+sudo apt install python3 python3-pip dpkg fakeroot
 ```
 
 Python 3.10 or newer must be the default `python3`.
@@ -20,9 +20,15 @@ From anywhere in the repo:
 trading-stats/linux/build_deb.sh
 ```
 
-Output: `trading-stats/linux/dist/trading-stats_<tag>_amd64.deb`
+Output: `trading-stats/linux/dist/trading-stats_<version>_amd64.deb`
 
-The version is taken from the current git tag (e.g. `v0.2.0` → `0.2.0`). The build will fail if HEAD has no exact tag.
+To build with a specific version:
+
+```bash
+PKG_VERSION=1.0.1 bash linux/build_deb.sh
+```
+
+Without `PKG_VERSION` the version defaults to `0.1.0` (local dev build). On CI the workflow sets it from the git tag automatically.
 
 Build time is fast — only two small local wheels are built (no `pip install PySide6` at build time).
 

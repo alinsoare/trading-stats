@@ -44,7 +44,6 @@ DIST_DIR="$SCRIPT_DIR/dist"
 
 # ── sanity checks ────────────────────────────────────────────────────────────
 command -v python3  >/dev/null || { echo "ERROR: python3 not found"; exit 1; }
-command -v git      >/dev/null || { echo "ERROR: git not found — run: sudo apt install git"; exit 1; }
 command -v dpkg-deb >/dev/null || { echo "ERROR: dpkg-deb not found — run: sudo apt install dpkg"; exit 1; }
 command -v fakeroot >/dev/null || { echo "ERROR: fakeroot not found — run: sudo apt install fakeroot"; exit 1; }
 
@@ -59,6 +58,12 @@ fi
 echo "Cleaning staging dir..."
 rm -rf "$STAGING"
 mkdir -p "$OPT_DIR/wheels" "$BIN_DIR" "$APPS_DIR" "$DOC_DIR" "$STAGING/DEBIAN" "$DIST_DIR"
+
+# ── sync pyproject.toml versions to PKG_VERSION ──────────────────────────────
+# pyproject.toml carries "0.1.0" as a dev placeholder; the real version
+# is always the git tag on CI or the fallback for local builds.
+sed -i "s/^version = .*/version = \"$PKG_VERSION\"/" "$REPO_ROOT/pyproject.toml"
+sed -i "s/^version = .*/version = \"$PKG_VERSION\"/" "$REPO_ROOT/desktop/pyproject.toml"
 
 # ── build local wheels (no third-party deps embedded) ───────────────────────
 echo "Building wheel: trading_stats..."

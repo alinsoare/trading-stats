@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trading-stats-desktop"
-version = "0.2.0"
+version = "0.1.0"
 description = "Native Windows desktop UI for MT5 trading-stats (PySide6); reuses trading-stats core."
 requires-python = ">=3.10"
 readme = "README.md"

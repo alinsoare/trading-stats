@@ -22,14 +22,8 @@ $RepoRoot   = Split-Path $DesktopDir -Parent
 Set-Location $DesktopDir
 
 # ── resolve version ───────────────────────────────────────────────────────────
-$PkgVersion = $Env:PKG_VERSION
-if (-not $PkgVersion) {
-    try {
-        $tag = git -C $RepoRoot describe --tags --exact-match 2>$null
-        if ($tag) { $PkgVersion = $tag -replace '^v', '' }
-    } catch {}
-}
-if (-not $PkgVersion) { $PkgVersion = "0.1.0" }
+# Version supplied via PKG_VERSION env var on CI; defaults to "0.1.0" for local builds.
+$PkgVersion = if ($Env:PKG_VERSION) { $Env:PKG_VERSION } else { "0.1.0" }
 Write-Host "Version: $PkgVersion"
 
 # ── sanity checks ─────────────────────────────────────────────────────────────
@@ -39,6 +33,14 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
 if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
     Write-Error "iscc (Inno Setup Compiler) not found. Install with: choco install innosetup"
 }
+
+# ── sync pyproject.toml versions to PkgVersion ───────────────────────────────
+# pyproject.toml carries "0.1.0" as a dev placeholder; the real version
+# is always the git tag on CI or the fallback for local builds.
+(Get-Content "$RepoRoot\pyproject.toml")  -replace '^version = .*', "version = `"$PkgVersion`"" |
+    Set-Content "$RepoRoot\pyproject.toml"
+(Get-Content "$DesktopDir\pyproject.toml") -replace '^version = .*', "version = `"$PkgVersion`"" |
+    Set-Content "$DesktopDir\pyproject.toml"
 
 # ── clean wheel output dir ────────────────────────────────────────────────────
 $WheelDir = Join-Path $DesktopDir "dist\wheels"

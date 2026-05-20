@@ -65,7 +65,7 @@ Filename: "{app}\venv\Scripts\pip.exe"; Parameters: "install --upgrade pip --qui
   StatusMsg: "Upgrading pip..."; \
   Flags: runhidden waituntilterminated
 Filename: "{app}\venv\Scripts\pip.exe"; \
-  Parameters: "install ""{app}\wheels\trading_stats-*.whl"" ""{app}\wheels\trading_stats_desktop-*.whl"" --quiet"; \
+  Parameters: "install --upgrade --find-links ""{app}\wheels"" trading-stats trading-stats-desktop --quiet"; \
   StatusMsg: "Installing dependencies from PyPI (this may take a few minutes)..."; \
   Flags: runhidden waituntilterminated
 
