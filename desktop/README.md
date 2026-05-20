@@ -20,21 +20,48 @@ python -m trading_stats_desktop
 
 Or: `trading-stats-desktop` if the console script is on your `PATH`.
 
-## Build a single `.exe` (Windows)
+## Build a Windows installer
 
-On a Windows machine:
+> **Target machine requirements:**
+> - Python 3.10+ installed from [python.org](https://www.python.org/downloads/) with "Add Python to PATH" checked
+> - Internet access (pip downloads PySide6, polars, matplotlib from PyPI at install time)
+
+### Build requirements (build machine)
 
 ```powershell
-cd trading-stats\desktop
-pip install -e ..
-pip install -e ".[build]"
-.\scripts\build_exe.ps1
+choco install innosetup   # or download from https://jrsoftware.org/isinfo.php
 ```
 
-Output: `dist\TradingStats.exe` (one file, no console window).
+Python 3.10+ must be on PATH.
 
-First launch may be slow (AV scanning). If Windows SmartScreen warns, use "More info" → "Run anyway"
-or sign the binary later.
+### Build
+
+From the repo root or `desktop\` folder:
+
+```powershell
+desktop\scripts\build_installer.ps1
+```
+
+Output: `desktop\dist\TradingStats-<version>-setup.exe` (~1–2 MB).
+
+Build time is fast — only two small local wheels are built (no PySide6 download at build time).
+
+### What the installer does
+
+1. Copies the two local app wheels to `%LOCALAPPDATA%\TradingStats\wheels\`
+2. Creates a Python venv at `%LOCALAPPDATA%\TradingStats\venv\`
+3. pip-installs PySide6, polars, matplotlib and the app wheels from PyPI
+4. Adds a **Trading Stats** shortcut to the Start Menu
+
+No admin / UAC prompt required (user-level install).
+
+> **Windows SmartScreen warning:** The installer is not code-signed. On first launch Windows may show
+> "Windows protected your PC". Click **More info** → **Run anyway** to proceed.
+> This is a one-time prompt per installer version.
+
+### Uninstall
+
+Use **Add or Remove Programs** → **Trading Stats**, or run the uninstaller from the Start Menu group. The entire `%LOCALAPPDATA%\TradingStats\` directory (venv + wheels) is removed.
 
 ## What it does
 

@@ -14,8 +14,6 @@ dependencies = [
   "polars>=0.20,<2",
 ]
 
-[project.optional-dependencies]
-build = ["pyinstaller>=6.0"]
 
 [project.scripts]
 trading-stats-desktop = "trading_stats_desktop.__main__:main"

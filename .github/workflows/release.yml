@@ -35,12 +35,9 @@ jobs:
           name: deb-package
           path: linux/dist/*.deb
 
-  # ── Windows .exe ───────────────────────────────────────────────────────────
+  # ── Windows installer ──────────────────────────────────────────────────────
   build-exe:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash   # use Git Bash for consistent syntax across all steps
     steps:
       - uses: actions/checkout@v4
 
@@ -49,25 +46,23 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install core library (editable)
-        run: pip install -e .
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
 
-      - name: Install desktop package + PyInstaller (editable)
-        run: pip install -e ".[build]"
-        working-directory: desktop
+      - name: Build wheels and installer
+        shell: pwsh
+        env:
+          PKG_VERSION: ${{ github.ref_name }}
+        run: |
+          $Env:PKG_VERSION = $Env:PKG_VERSION -replace '^v', ''
+          desktop\scripts\build_installer.ps1
 
-      - name: Build .exe
-        run: pyinstaller --clean --noconfirm TradingStats.spec
-        working-directory: desktop
-
-      - name: Rename .exe to include version tag
-        run: mv desktop/dist/TradingStats.exe "desktop/dist/TradingStats-${{ github.ref_name }}.exe"
-
-      - name: Upload .exe artifact
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: exe-package
-          path: desktop/dist/TradingStats-*.exe
+          path: desktop/dist/TradingStats-*-setup.exe
 
   # ── GitHub Release with both files ─────────────────────────────────────────
   release:
