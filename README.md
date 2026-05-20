@@ -1,4 +1,4 @@
-# Trading stats
+# Trading Stats
 
 Multi-account MT5 deal CSV export + PySide6 desktop analytics app.
 
@@ -11,7 +11,23 @@ Multi-account MT5 deal CSV export + PySide6 desktop analytics app.
 
 ---
 
-## Quick start
+## Pre-built packages
+
+Pre-compiled Ubuntu `.deb` and Windows `.exe` packages are available on the
+[Releases page](https://github.com/alinsoare/trading-stats/releases) — no build step required.
+
+```bash
+# Ubuntu / Debian
+sudo dpkg -i trading-stats_<version>_amd64.deb
+```
+
+```powershell
+# Windows — download TradingStats-<version>.exe and run directly
+```
+
+---
+
+## Quick start (run from source)
 
 ```bash
 python3 -m venv .venv
@@ -42,18 +58,18 @@ Paths are saved automatically in `~/.config/TradingStats/` and restored on next 
 
 ---
 
-## Ubuntu `.deb` package
+## Ubuntu `.deb` package (build from source)
 
 See `linux/README.md`. One-command build:
 
 ```bash
 linux/build_deb.sh
-sudo dpkg -i linux/dist/trading-stats_0.1.0_amd64.deb
+sudo dpkg -i linux/dist/trading-stats_<version>_amd64.deb
 ```
 
 ---
 
-## Windows
+## Windows `.exe` (build from source)
 
 ```powershell
 pip install -e .

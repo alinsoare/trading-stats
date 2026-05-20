@@ -1,8 +1,17 @@
 //+------------------------------------------------------------------+
-//| ExportTradingDeals.mq5 — export deal history to CSV for trading-stats |
+//|                                         ExportTradingDeals.mq5   |
+//|                             Copyright 2026, Alin Soare           |
 //+------------------------------------------------------------------+
-#property copyright "trading-stats"
+#property copyright "Alin Soare"
+#property link      "https://www.mql5.com/en/market/product/177780"
 #property version   "1.00"
+#property icon      "ExportTradingDeals.ico"
+#property description "Exports your full deal history to a CSV file readable by the trading-stats desktop application."
+#property description ""
+#property description "Output file: MQL5\\Files\\trading_stats\\deals_<login>.csv"
+#property description "Re-run at any time to refresh — the file is always overwritten with the latest history."
+#property description ""
+#property description "Compatible with Trading Stats: https://github.com/alinsoare/trading-stats"
 #property script_show_inputs
 
 /// History range: from=0 selects from earliest available server time.

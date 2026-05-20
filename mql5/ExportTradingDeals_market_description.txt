@@ -1,0 +1,65 @@
+ExportTradingDeals — Market product description (English)
+================================================================================
+Paste into the MQL5 Market editor (HTML mode). Follow Market description rules:
+no emojis, no third-party links. Support via product comments or MQL5 messages only.
+See: https://www.mql5.com/en/forum/375547
+
+NOTE: MQL5 Market rules do NOT allow third-party links (e.g. GitHub) in the HTML body.
+The Trading Stats GitHub URL is mentioned below as plain text for reference only; MQL5 will
+reject the listing if a clickable link to github.com is included. The HTML body mentions the
+app name and that pre-built packages are available, without a direct URL.
+
+Trading Stats — source code and pre-built releases:
+  https://github.com/alinsoare/trading-stats
+  https://github.com/alinsoare/trading-stats/releases
+
+Put demo videos in the Screenshots section, not in this description.
+================================================================================
+
+
+--- COPY FROM HERE (HTML body) ---
+
+<p>ExportTradingDeals is a MetaTrader 5 script that exports your complete deal history to a CSV file. The file is consumed directly by the Trading Stats desktop application to produce charts and statistics about your trading performance. Trading Stats is a free, open-source application; pre-built Ubuntu and Windows packages are available on the project releases page (search: alinsoare/trading-stats on GitHub).</p>
+
+<h2>What it does</h2>
+
+<p>When you run the script, it reads all deals from your account history within the selected date range and writes them to a CSV file in the MetaTrader shared files folder. The file is always overwritten, so re-running the script gives you an up-to-date snapshot at any time.</p>
+
+<h2>Output file location</h2>
+
+<p>The CSV is written to <strong>MQL5\Files\trading_stats\deals_&lt;login&gt;.csv</strong> inside the MetaTrader terminal data folder. One file is created per account login number. Open the MetaEditor file manager or use File &rarr; Open Data Folder to browse to this path.</p>
+
+<h2>Main features</h2>
+
+<ul>
+<li><strong>Full history export.</strong> Exports every deal type: buy, sell, balance, credit, commission, swap, and other non-trade entries. A dedicated column flags non-trade deals so they can be filtered in the dashboard.</li>
+<li><strong>Configurable date range.</strong> Choose a custom start date or export from the earliest available server history. By default the end of range is always the current server time, but a fixed end date can also be set.</li>
+<li><strong>One file per account.</strong> The output filename includes your account login number, so running the script on multiple accounts never overwrites a previous export.</li>
+<li><strong>Standard CSV format.</strong> Columns: ticket, time, time_msc, type, entry, symbol, volume, price, commission, swap, profit, magic, comment, position_id, reason, login, server, is_non_trade. Compatible with Excel, Python pandas, and the trading-stats application.</li>
+<li><strong>Safe on repeated runs.</strong> The file is opened with FILE_WRITE which truncates and rewrites. Running the script twice does not produce duplicates.</li>
+</ul>
+
+<h2>How to use</h2>
+
+<p>Drag the script from the Navigator onto any chart. The input dialog opens where you can set the history start date and choose whether to use the current server time or a fixed end date. Click OK and the script runs instantly. A message in the Experts log confirms how many rows were written and the full file path.</p>
+
+<h2>Input parameters</h2>
+
+<p><strong>History from</strong> — start of the export range as a datetime value. Set to 0 (default) to begin from the earliest deal available on the server.</p>
+<p><strong>History to now</strong> — when enabled (default), the export always ends at the current server time. Disable this to use the custom end date below.</p>
+<p><strong>History to (custom)</strong> — end of the export range when History to now is disabled. Set to 0 to fall back to the current server time.</p>
+
+<h2>Notes</h2>
+
+<p>If the trading_stats subfolder does not yet exist, the script creates it automatically. The export runs on the history loaded in the terminal; if the server has not delivered older history yet, scroll the chart back or use Tools &rarr; History Center to load more data before running the script.</p>
+
+<p>Trading Stats is a free, open-source desktop application. Pre-built Ubuntu and Windows packages are available on the releases page of the project (search: alinsoare/trading-stats on GitHub). No build step is required when using a pre-built package.</p>
+
+<h2>Support</h2>
+
+<p>For questions, use the comments section on this product page or contact the author through the MQL5 messaging system.</p>
+
+
+--- END OF HTML BODY ---
+
+Character count (HTML body only): 2918
