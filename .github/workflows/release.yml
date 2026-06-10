@@ -8,83 +8,91 @@ on:
       - 'v[0-9]*'
 
 jobs:
-  # ── Linux .deb ─────────────────────────────────────────────────────────────
-  build-deb:
+  # ── Linux: native binary + .deb ─────────────────────────────────────────────
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system build tools
-        run: sudo apt-get install -y fakeroot dpkg
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: '3.13'
+          go-version: '1.23'
+
+      - name: Install Fyne build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc pkg-config libgl1-mesa-dev xorg-dev fakeroot dpkg
+
+      - name: Build standalone Linux binary
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          cd go
+          go build -trimpath -ldflags "-s -w" -o ../trading-stats-linux-amd64 .
 
       - name: Build .deb
         env:
-          PKG_VERSION: ${{ github.ref_name }}   # e.g. "v0.2.0" → strip v in script
+          PKG_VERSION: ${{ github.ref_name }}
         run: |
           export PKG_VERSION="${PKG_VERSION#v}"
           bash linux/build_deb.sh
 
-      - name: Upload .deb artifact
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: deb-package
-          path: linux/dist/*.deb
+          name: linux-package
+          path: |
+            linux/dist/*.deb
+            trading-stats-linux-amd64
 
-  # ── Windows installer ──────────────────────────────────────────────────────
-  build-exe:
+  # ── Windows: standalone .exe ────────────────────────────────────────────────
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: '3.13'
+          go-version: '1.23'
 
-      - name: Install Inno Setup
-        shell: pwsh
-        run: choco install innosetup --no-progress -y
-
-      - name: Build wheels and installer
+      - name: Build standalone Windows .exe
         shell: pwsh
         env:
-          PKG_VERSION: ${{ github.ref_name }}
+          CGO_ENABLED: '1'
         run: |
-          $Env:PKG_VERSION = $Env:PKG_VERSION -replace '^v', ''
-          desktop\scripts\build_installer.ps1
+          $ver = "${{ github.ref_name }}" -replace '^v', ''
+          Set-Location go
+          go build -trimpath -ldflags "-s -w -H=windowsgui" -o "..\TradingStats-$ver.exe" .
 
-      - name: Upload installer artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: exe-package
-          path: desktop/dist/TradingStats-*-setup.exe
+          name: windows-package
+          path: TradingStats-*.exe
 
-  # ── GitHub Release with both files ─────────────────────────────────────────
+  # ── GitHub Release with all files ──────────────────────────────────────────
   release:
-    needs: [build-deb, build-exe]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # required to create a release
+      contents: write
     steps:
-      - name: Download .deb
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
-          name: deb-package
+          name: linux-package
           path: artifacts/
 
-      - name: Download .exe
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: exe-package
+          name: windows-package
           path: artifacts/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
-          generate_release_notes: true   # auto-fills notes from commit messages
+          generate_release_notes: true

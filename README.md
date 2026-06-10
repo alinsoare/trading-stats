@@ -1,40 +1,62 @@
 # Trading Stats
 
-Multi-account MT5 deal CSV export + PySide6 desktop analytics app.
+Multi-account MT5 deal CSV export + native desktop analytics app, written in Go.
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| **Core library** | `src/trading_stats/` | CSV ingest, KPI calculations, path resolution |
-| **Desktop app** | `desktop/` | PySide6 native UI (filters, charts, tables) |
-| **Ubuntu `.deb`** | `linux/` | Installable package builder |
+| **Desktop app** | `go/` | Native Go + Fyne UI (ingest, KPIs, filters, equity chart, tables) |
+| **Ubuntu `.deb`** | `linux/` | Self-contained package builder |
 | **MQL5 exporter** | `mql5/` | MetaEditor script that writes `deals_*.csv` |
+
+The app ships as a **single self-contained binary**. There is no Python, no
+runtime to install, and no internet needed at install time — unlike a typical
+interpreted desktop app, the Go binary bundles everything it needs.
 
 ---
 
 ## Pre-built packages
 
-Pre-compiled Ubuntu `.deb` and Windows `.exe` packages are available on the
-[Releases page](https://github.com/alinsoare/trading-stats/releases) — no build step required.
+Pre-compiled binaries are available on the
+[Releases page](https://github.com/alinsoare/trading-stats/releases):
+
+- `trading-stats_<version>_amd64.deb` — Ubuntu / Debian package
+- `trading-stats-linux-amd64` — bare Linux binary (no install)
+- `TradingStats-<version>.exe` — Windows executable (run directly, no install)
 
 ```bash
 # Ubuntu / Debian
 sudo dpkg -i trading-stats_<version>_amd64.deb
 ```
 
-```powershell
-# Windows — download TradingStats-<version>.exe and run directly
-```
+On Windows, just download `TradingStats-<version>.exe` and run it.
 
 ---
 
-## Quick start (run from source)
+## Run from source
+
+Requires **Go 1.23+**. On Linux you also need the Fyne build dependencies
+(a C compiler and the X11/GL development headers):
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -e .                 # core library
-pip install -e desktop/          # desktop app (PySide6 + matplotlib)
-python -m trading_stats_desktop  # launch
+# Ubuntu / Debian build deps (one-time)
+sudo apt install gcc pkg-config libgl1-mesa-dev xorg-dev
+
+cd go
+go run .
+```
+
+On Windows, install Go and a C compiler (the MinGW `gcc` toolchain), then:
+
+```powershell
+cd go
+go run .
+```
+
+Run the tests (KPI parity fixtures are in `go/testdata/parity`):
+
+```bash
+cd go
+go test ./...
 ```
 
 ---
@@ -54,7 +76,8 @@ In the desktop app, add **absolute paths** to the folders containing `deals_*.cs
 - the folder itself (`…/MQL5/Files/trading_stats`), **or**
 - the MT5 terminal root if `MQL5/Files/trading_stats` exists under it.
 
-Paths are saved automatically in `~/.config/TradingStats/` and restored on next launch.
+Paths and per-account breakeven tolerances are saved automatically (via Fyne
+preferences, under your user config dir) and restored on next launch.
 
 ---
 
@@ -71,10 +94,15 @@ sudo dpkg -i linux/dist/trading-stats_<version>_amd64.deb
 
 ## Windows `.exe` (build from source)
 
+With Go and a C compiler on `PATH`:
+
 ```powershell
-pip install -e .
-pip install -e desktop\
-python -m trading_stats_desktop
+cd go
+go build -ldflags "-s -w -H=windowsgui" -o TradingStats.exe .
 ```
 
-For a standalone `.exe` see `desktop/README.md`.
+The resulting `.exe` is self-contained and runs without any install step.
+
+> **Windows SmartScreen:** the binary is not code-signed. On first launch
+> Windows may show "Windows protected your PC" — click **More info** →
+> **Run anyway**.

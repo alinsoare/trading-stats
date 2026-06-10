@@ -1,109 +1,69 @@
 #!/usr/bin/env bash
-# Build a lightweight .deb for Ubuntu / Debian (amd64).
+# Build a self-contained .deb for Ubuntu / Debian (amd64).
+#
+# Unlike the old Python build, this packages a single statically-linked Go
+# binary. No venv, no pip, no internet needed on the target machine — only the
+# standard desktop GL/X11 runtime libraries (declared as Depends).
 #
 # Usage (from the repo root or this folder):
-#   trading-stats/linux/build_deb.sh
+#   linux/build_deb.sh
+#   PKG_VERSION=1.0.0 bash linux/build_deb.sh
 #
-# Requirements on the build machine:
-#   - Python 3.10+    (python3)
-#   - python3-pip     (apt install python3-pip)
-#   - dpkg-deb        (apt install dpkg)
-#   - fakeroot        (apt install fakeroot)
+# Build requirements (build machine):
+#   - Go 1.23+
+#   - gcc, pkg-config, libgl1-mesa-dev, xorg-dev   (Fyne CGO build deps)
+#   - dpkg-deb, fakeroot
 #
-# The .deb does NOT embed third-party deps. It contains only the two local
-# app wheels. On the target machine, postinst creates a venv at
-# /opt/trading-stats/venv and pip-installs all deps from PyPI.
-#
-# Output:  trading-stats/linux/dist/trading-stats_<version>_amd64.deb
-#
-# What gets installed on the target machine:
-#   /opt/trading-stats/wheels/        local app wheels (tiny; no deps bundled)
-#   /opt/trading-stats/venv/          Python venv created by postinst at install time
-#   /usr/local/bin/trading-stats      launcher script
-#   /usr/share/applications/trading-stats.desktop
-#   /usr/share/doc/trading-stats/copyright
+# Output:  linux/dist/trading-stats_<version>_amd64.deb
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+GO_DIR="$REPO_ROOT/go"
 
 PKG_NAME="trading-stats"
-# Version can be supplied via PKG_VERSION env var (e.g. from CI).
-# Defaults to "0.1.0" if neither is available.
-PKG_VERSION="${PKG_VERSION:-0.1.0}"
-echo "Version: $PKG_VERSION"
+PKG_VERSION="${PKG_VERSION:-0.0.1}"
 ARCH="amd64"
 DEB_FILE="${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb"
 
 STAGING="$SCRIPT_DIR/_staging"
-OPT_DIR="$STAGING/opt/trading-stats"
-BIN_DIR="$STAGING/usr/local/bin"
+BIN_DIR="$STAGING/usr/bin"
 APPS_DIR="$STAGING/usr/share/applications"
 DOC_DIR="$STAGING/usr/share/doc/$PKG_NAME"
 DIST_DIR="$SCRIPT_DIR/dist"
 
-# ── sanity checks ────────────────────────────────────────────────────────────
-command -v python3  >/dev/null || { echo "ERROR: python3 not found"; exit 1; }
+echo "Version: $PKG_VERSION"
+
+command -v go       >/dev/null || { echo "ERROR: go not found"; exit 1; }
 command -v dpkg-deb >/dev/null || { echo "ERROR: dpkg-deb not found — run: sudo apt install dpkg"; exit 1; }
 command -v fakeroot >/dev/null || { echo "ERROR: fakeroot not found — run: sudo apt install fakeroot"; exit 1; }
 
-PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)"; then
-    echo "Python $PY_VER — OK"
-else
-    echo "ERROR: Python 3.10+ required (found $PY_VER)"; exit 1
-fi
-
-# ── clean staging ────────────────────────────────────────────────────────────
-echo "Cleaning staging dir..."
 rm -rf "$STAGING"
-mkdir -p "$OPT_DIR/wheels" "$BIN_DIR" "$APPS_DIR" "$DOC_DIR" "$STAGING/DEBIAN" "$DIST_DIR"
+mkdir -p "$BIN_DIR" "$APPS_DIR" "$DOC_DIR" "$STAGING/DEBIAN" "$DIST_DIR"
 
-# ── sync pyproject.toml versions to PKG_VERSION ──────────────────────────────
-# pyproject.toml carries "0.1.0" as a dev placeholder; the real version
-# is always the git tag on CI or the fallback for local builds.
-sed -i "s/^version = .*/version = \"$PKG_VERSION\"/" "$REPO_ROOT/pyproject.toml"
-sed -i "s/^version = .*/version = \"$PKG_VERSION\"/" "$REPO_ROOT/desktop/pyproject.toml"
-
-# ── build local wheels (no third-party deps embedded) ───────────────────────
-echo "Building wheel: trading_stats..."
-python3 -m pip wheel "$REPO_ROOT" --no-deps -w "$OPT_DIR/wheels" --quiet
-
-echo "Building wheel: trading_stats_desktop..."
-python3 -m pip wheel "$REPO_ROOT/desktop" --no-deps -w "$OPT_DIR/wheels" --quiet
-
-echo "Wheels built:"
-ls -lh "$OPT_DIR/wheels/"
-
-# ── launcher ─────────────────────────────────────────────────────────────────
-cat > "$BIN_DIR/trading-stats" << 'LAUNCHER'
-#!/usr/bin/env bash
-exec /opt/trading-stats/venv/bin/python -m trading_stats_desktop "$@"
-LAUNCHER
+echo "Building Go binary..."
+( cd "$GO_DIR" && CGO_ENABLED=1 go build -trimpath -ldflags "-s -w" -o "$BIN_DIR/trading-stats" . )
 chmod 755 "$BIN_DIR/trading-stats"
 
-# ── .desktop entry ───────────────────────────────────────────────────────────
 cat > "$APPS_DIR/trading-stats.desktop" << 'DESKTOP'
 [Desktop Entry]
 Name=Trading Stats
 GenericName=MT5 Trading Statistics
 Comment=Analyse MetaTrader 5 deal CSV exports across multiple accounts
-Exec=/opt/trading-stats/venv/bin/python -m trading_stats_desktop
+Exec=/usr/bin/trading-stats
 Terminal=false
 Type=Application
 Categories=Finance;Office;
 Keywords=trading;forex;mt5;metatrader;statistics;
 DESKTOP
 
-# ── copyright ─────────────────────────────────────────────────────────────────
 cat > "$DOC_DIR/copyright" << EOF
 trading-stats $PKG_VERSION
 Source: local build from $(realpath "$REPO_ROOT")
 Build date: $(date -u +"%Y-%m-%d %H:%M UTC")
 EOF
 
-# ── DEBIAN/control ───────────────────────────────────────────────────────────
-INSTALLED_KB=$(du -sk "$OPT_DIR/wheels" | awk '{print $1}')
+INSTALLED_KB=$(du -sk "$BIN_DIR" | awk '{print $1}')
 
 cat > "$STAGING/DEBIAN/control" << EOF
 Package: $PKG_NAME
@@ -111,66 +71,42 @@ Version: $PKG_VERSION
 Architecture: $ARCH
 Maintainer: local build
 Installed-Size: $INSTALLED_KB
-Depends: python3 (>= 3.10), python3-venv, python3-pip, libgl1, libglib2.0-0, libdbus-1-3
+Depends: libc6, libgl1, libx11-6, libxcursor1, libxrandr2, libxinerama1, libxi6, libxxf86vm1
 Section: finance
 Priority: optional
-Description: MT5 multi-account trading statistics — PySide6 desktop app
+Description: MT5 multi-account trading statistics — native desktop app
  Analyses MetaTrader 5 deal CSV exports across multiple accounts.
  Provides KPIs (win rate, profit factor, drawdown, equity curve) with
- date / account filters and CSV export. On install, creates a Python venv
- at /opt/trading-stats/venv and pip-installs Polars, PySide6, matplotlib.
+ date / account filters and CSV export. Ships as a single self-contained
+ Go binary — no Python, no pip, no internet required at install time.
 EOF
 
-# ── DEBIAN/postinst ──────────────────────────────────────────────────────────
 cat > "$STAGING/DEBIAN/postinst" << 'POSTINST'
 #!/bin/sh
 set -e
-VENV=/opt/trading-stats/venv
-echo "trading-stats: creating Python venv at $VENV ..."
-python3 -m venv "$VENV"
-echo "trading-stats: installing dependencies from PyPI (requires internet) ..."
-"$VENV/bin/pip" install --upgrade pip --quiet
-"$VENV/bin/pip" install /opt/trading-stats/wheels/*.whl --quiet
-echo "trading-stats: setup complete."
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database /usr/share/applications || true
 fi
 POSTINST
 chmod 755 "$STAGING/DEBIAN/postinst"
 
-# ── DEBIAN/postrm ─────────────────────────────────────────────────────────────
 cat > "$STAGING/DEBIAN/postrm" << 'POSTRM'
 #!/bin/sh
 set -e
-if [ "$1" = "purge" ]; then
-    rm -rf /opt/trading-stats
-fi
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database /usr/share/applications || true
 fi
 POSTRM
 chmod 755 "$STAGING/DEBIAN/postrm"
 
-# ── fix permissions ───────────────────────────────────────────────────────────
 find "$STAGING" -type d -exec chmod 755 {} \;
-find "$STAGING" -type f -exec chmod 644 {} \;
+find "$STAGING/usr" -type f -exec chmod 644 {} \;
 chmod 755 "$BIN_DIR/trading-stats"
-chmod 755 "$STAGING/DEBIAN/postinst"
-chmod 755 "$STAGING/DEBIAN/postrm"
+chmod 755 "$STAGING/DEBIAN/postinst" "$STAGING/DEBIAN/postrm"
 
-# ── build deb ─────────────────────────────────────────────────────────────────
 echo "Building $DEB_FILE..."
 fakeroot dpkg-deb --build --root-owner-group "$STAGING" "$DIST_DIR/$DEB_FILE"
 
 echo ""
 echo "Done: $DIST_DIR/$DEB_FILE"
-echo ""
-echo "Install with:"
-echo "  sudo dpkg -i $DIST_DIR/$DEB_FILE"
-echo "  sudo apt-get install -f   # resolves python3-venv, python3-pip, libgl1 etc."
-echo ""
-echo "Note: postinst will pip-install PySide6, polars, matplotlib from PyPI."
-echo "      Internet access is required on the target machine during installation."
-echo ""
-echo "Then run:  trading-stats"
-echo "     or:   python3 -m trading_stats_desktop"
+echo "Install with: sudo dpkg -i $DIST_DIR/$DEB_FILE"

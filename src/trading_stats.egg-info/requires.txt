@@ -1,4 +1,0 @@
-polars>=0.20
-
-[dev]
-pytest>=7.4

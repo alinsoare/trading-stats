@@ -1,2 +1,0 @@
-[console_scripts]
-trading-stats-desktop = trading_stats_desktop.__main__:main

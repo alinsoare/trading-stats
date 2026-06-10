@@ -72,6 +72,15 @@ $RECYCLE.BIN/
 
 # Data exports (MT5 deal CSVs — local only, never committed)
 deals_*.csv
+# …except the committed parity test fixtures
+!go/testdata/parity/deals_*.csv
+
+# Go build artifacts
+/trading-stats
+/trading-stats-linux-amd64
+/TradingStats-*.exe
+go/trading-stats
+go/trading-stats.exe
 
 # Secrets / local config
 .env

@@ -1,5 +1,0 @@
-# Core library
--e .
-
-# Desktop app
--e desktop/
