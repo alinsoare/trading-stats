@@ -22,6 +22,7 @@ Pre-compiled binaries are available on the
 - `trading-stats_<version>_amd64.deb` — Ubuntu / Debian package
 - `trading-stats-linux-amd64` — bare Linux binary (no install)
 - `TradingStats-<version>.exe` — Windows executable (run directly, no install)
+- `TradingStats-<version>.dmg` — macOS universal disk image (Intel + Apple Silicon)
 
 ```bash
 # Ubuntu / Debian
@@ -29,6 +30,9 @@ sudo dpkg -i trading-stats_<version>_amd64.deb
 ```
 
 On Windows, just download `TradingStats-<version>.exe` and run it.
+
+On macOS, open `TradingStats-<version>.dmg` and drag **Trading Stats** to
+Applications.
 
 ---
 
@@ -106,3 +110,22 @@ The resulting `.exe` is self-contained and runs without any install step.
 > **Windows SmartScreen:** the binary is not code-signed. On first launch
 > Windows may show "Windows protected your PC" — click **More info** →
 > **Run anyway**.
+
+---
+
+## macOS `.dmg` (build from source)
+
+See `macos/README.md`. One-command build (must run on macOS, needs Go 1.23+ and
+the Xcode Command Line Tools):
+
+```bash
+macos/build_app.sh
+open macos/dist/TradingStats-<version>.dmg
+```
+
+This produces a universal `TradingStats.app` (Intel + Apple Silicon) packaged in
+a `.dmg`.
+
+> **Gatekeeper:** the app is not code-signed. On first launch, right-click
+> **Trading Stats** → **Open** → **Open**, or run
+> `xattr -dr com.apple.quarantine "/Applications/TradingStats.app"`.
