@@ -63,7 +63,7 @@ jobs:
           $ver = "${{ github.ref_name }}" -replace '^v', ''
           go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
           Set-Location go
-          & "$(go env GOPATH)\bin\goversioninfo.exe" -icon=trading-stats.ico -o resource_windows_amd64.syso -product-version="$ver" -file-version="$ver" versioninfo.json
+          & "$(go env GOPATH)\bin\goversioninfo.exe" "-icon=trading-stats.ico" "-o=resource_windows_amd64.syso" "-product-version=$ver" "-file-version=$ver" versioninfo.json
 
       - name: Build standalone Windows .exe
         shell: pwsh

@@ -104,7 +104,7 @@ With Go and a C compiler on `PATH`:
 cd go
 # One-time per build: embed the app icon + version info into the .exe
 go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
-& "$(go env GOPATH)\bin\goversioninfo.exe" -icon=trading-stats.ico -o resource_windows_amd64.syso versioninfo.json
+& "$(go env GOPATH)\bin\goversioninfo.exe" "-icon=trading-stats.ico" "-o=resource_windows_amd64.syso" versioninfo.json
 
 go build -ldflags "-s -w -H=windowsgui" -o TradingStats.exe .
 ```
