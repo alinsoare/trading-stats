@@ -102,10 +102,16 @@ With Go and a C compiler on `PATH`:
 
 ```powershell
 cd go
+# One-time per build: embed the app icon + version info into the .exe
+go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+& "$(go env GOPATH)\bin\goversioninfo.exe" -icon=trading-stats.ico -o resource_windows_amd64.syso versioninfo.json
+
 go build -ldflags "-s -w -H=windowsgui" -o TradingStats.exe .
 ```
 
-The resulting `.exe` is self-contained and runs without any install step.
+The resulting `.exe` is self-contained and runs without any install step. The
+`goversioninfo` step embeds `trading-stats.ico` so the file shows the app icon in
+Explorer; the running app's taskbar icon is set in code and works without it.
 
 > **Windows SmartScreen:** the binary is not code-signed. On first launch
 > Windows may show "Windows protected your PC" — click **More info** →

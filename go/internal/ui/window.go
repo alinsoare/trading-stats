@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/alinsoare/trading-stats/go/internal/ingest"
@@ -79,6 +80,7 @@ func NewWindow(app fyne.App) *Window {
 		thresholds:   map[string]float64{},
 	}
 	w.win = app.NewWindow("Trading Stats")
+	w.win.SetIcon(AppIcon())
 	w.thresholds = loadThresholds(w.prefs)
 	w.paths = loadPaths(w.prefs)
 
@@ -177,12 +179,51 @@ func (w *Window) buildLeftPanel() fyne.CanvasObject {
 }
 
 func (w *Window) onBrowse() {
-	dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+	d := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err != nil || uri == nil {
 			return
 		}
 		w.addPath(uri.Path())
 	}, w.win)
+
+	// Default to the list view (Fyne otherwise defaults to the grid).
+	d.SetView(dialog.ListView)
+
+	// Open large. The folder picker is a modal pop-up rendered inside the app
+	// window, so it cannot be drag-resized; sizing it to most of the window is
+	// the closest equivalent.
+	if c := w.win.Canvas(); c != nil {
+		sz := c.Size()
+		d.Resize(fyne.NewSize(sz.Width*0.9, sz.Height*0.9))
+	}
+
+	d.Show()
+
+	// Fyne has no option to omit the "New Folder" button, so hide it after the
+	// pop-up is built by walking the overlay's widget tree.
+	hideNewFolderButton(w.win.Canvas().Overlays().Top())
+}
+
+// hideNewFolderButton walks a freshly shown file/folder dialog and hides the
+// "New Folder" button (identified by its folder-new icon). Returns true once
+// the button is found and hidden.
+func hideNewFolderButton(obj fyne.CanvasObject) bool {
+	switch o := obj.(type) {
+	case *widget.Button:
+		if o.Icon != nil && o.Icon.Name() == theme.FolderNewIcon().Name() {
+			o.Hide()
+			return true
+		}
+	case *widget.PopUp:
+		return hideNewFolderButton(o.Content)
+	case *fyne.Container:
+		for _, child := range o.Objects {
+			if hideNewFolderButton(child) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (w *Window) onPaste() {

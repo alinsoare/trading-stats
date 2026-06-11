@@ -59,6 +59,7 @@ Or find **Trading Stats** in the application menu (Finance category).
 |------|----------|
 | `/usr/bin/trading-stats` | The self-contained Go binary |
 | `/usr/share/applications/trading-stats.desktop` | App-menu entry |
+| `/usr/share/pixmaps/trading-stats.png` | App / taskbar icon |
 | `/usr/share/doc/trading-stats/copyright` | Build info |
 
 No system Python packages, venvs, or pip installs are involved.

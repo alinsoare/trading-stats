@@ -1,0 +1,23 @@
+{
+  "FixedFileInfo": {
+    "FileVersion": { "Major": 0, "Minor": 0, "Patch": 0, "Build": 0 },
+    "ProductVersion": { "Major": 0, "Minor": 0, "Patch": 0, "Build": 0 },
+    "FileFlagsMask": "3f",
+    "FileFlags": "00",
+    "FileOS": "040004",
+    "FileType": "01",
+    "FileSubType": "00"
+  },
+  "StringFileInfo": {
+    "CompanyName": "alinsoare",
+    "FileDescription": "Trading Stats — MT5 multi-account trading statistics",
+    "InternalName": "TradingStats",
+    "LegalCopyright": "",
+    "OriginalFilename": "TradingStats.exe",
+    "ProductName": "Trading Stats"
+  },
+  "VarFileInfo": {
+    "Translation": { "LangID": "0409", "CharsetID": "04B0" }
+  },
+  "IconPath": "trading-stats.ico"
+}

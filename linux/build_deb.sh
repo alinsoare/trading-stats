@@ -30,7 +30,9 @@ STAGING="$SCRIPT_DIR/_staging"
 BIN_DIR="$STAGING/usr/bin"
 APPS_DIR="$STAGING/usr/share/applications"
 DOC_DIR="$STAGING/usr/share/doc/$PKG_NAME"
+ICON_DIR="$STAGING/usr/share/pixmaps"
 DIST_DIR="$SCRIPT_DIR/dist"
+ICON_SRC="$GO_DIR/internal/ui/appicon.png"
 
 echo "Version: $PKG_VERSION"
 
@@ -39,11 +41,14 @@ command -v dpkg-deb >/dev/null || { echo "ERROR: dpkg-deb not found — run: sud
 command -v fakeroot >/dev/null || { echo "ERROR: fakeroot not found — run: sudo apt install fakeroot"; exit 1; }
 
 rm -rf "$STAGING"
-mkdir -p "$BIN_DIR" "$APPS_DIR" "$DOC_DIR" "$STAGING/DEBIAN" "$DIST_DIR"
+mkdir -p "$BIN_DIR" "$APPS_DIR" "$DOC_DIR" "$ICON_DIR" "$STAGING/DEBIAN" "$DIST_DIR"
 
 echo "Building Go binary..."
 ( cd "$GO_DIR" && CGO_ENABLED=1 go build -trimpath -ldflags "-s -w" -o "$BIN_DIR/trading-stats" . )
 chmod 755 "$BIN_DIR/trading-stats"
+
+echo "Installing icon..."
+cp "$ICON_SRC" "$ICON_DIR/trading-stats.png"
 
 cat > "$APPS_DIR/trading-stats.desktop" << 'DESKTOP'
 [Desktop Entry]
@@ -51,6 +56,7 @@ Name=Trading Stats
 GenericName=MT5 Trading Statistics
 Comment=Analyse MetaTrader 5 deal CSV exports across multiple accounts
 Exec=/usr/bin/trading-stats
+Icon=trading-stats
 Terminal=false
 Type=Application
 Categories=Finance;Office;

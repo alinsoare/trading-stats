@@ -10,6 +10,7 @@ import (
 
 func main() {
 	a := app.NewWithID("com.alinsoare.tradingstats")
+	a.SetIcon(ui.AppIcon())
 	a.Settings().SetTheme(ui.Theme())
 	w := ui.NewWindow(a)
 	w.Show()

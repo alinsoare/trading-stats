@@ -81,6 +81,8 @@ deals_*.csv
 /TradingStats-*.exe
 go/trading-stats
 go/trading-stats.exe
+# Generated Windows resource (icon/version) — produced at build time
+go/resource_windows_amd64.syso
 
 # Secrets / local config
 .env
