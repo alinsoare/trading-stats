@@ -132,5 +132,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          # Recursive: the Linux artifact nests the .deb under linux/dist/
+          # (upload-artifact uses the repo root as the least common ancestor),
+          # so a non-recursive artifacts/* would miss it.
+          files: artifacts/**/*
           generate_release_notes: true
